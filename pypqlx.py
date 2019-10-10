@@ -11,10 +11,9 @@ if sys.version_info[0] < 3:
 import records
 import numpy as np
 
-class E(Exception):
-    '''Our exception class'''
-    pass
-
+#
+## Methods
+#
 
 def LOG(msg, end = "\n"):
     '''Our message logging toolkit'''
@@ -35,6 +34,24 @@ def pdate(strdate):
     d.replace(tzinfo = datetime.timezone.utc)
     
     return d
+
+
+def ptime(strtime):
+    fmt = '%H:%M:%S'
+    
+    if len(strtime) == 5: fmt = '%H:%M'
+    if len(strtime) == 2: fmt = '%H'
+    t = datetime.datetime.strftime(strtime, fmt).time()
+    
+    return t
+
+#
+## Classes
+#
+
+class E(Exception):
+    '''Our exception class'''
+    pass
 
 
 class PDF(object):
@@ -143,6 +160,9 @@ class PQLXdb(object):
     def __isOpen__(self):
         return self.idx.open
     
+    def __PDF_filters__(self):
+        pass
+
     #
     ## Public
     #
@@ -194,12 +214,20 @@ class PQLXdb(object):
         if self.data.open:  self.data.close()
         if self.stats.open: self.stats.close()
 
-
+#
+## Main Code
+#
 if __name__ == "__main__":
     db = PQLXdb(user     = sys.argv[1],
                 password = sys.argv[2],
                 machine  = sys.argv[3],
                 basedb   = sys.argv[4])
+    
+    filters = {
+        'minhour' : '08:00:00',
+        'maxhour' : None,
+        'dow'     : ('Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa')
+    }
     
     try:
         pdf = db.PDF('2017-12-01','2017-12-09 23:59:00', 'XC', 'VACA', 'HHZ')
