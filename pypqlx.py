@@ -166,7 +166,7 @@ class PQLXdb(object):
     #
     ## Public
     #
-    def PDF(self, s, e, N, S, C, L = '', filters = None):
+    def PDF(self, s, e, N, S, C, L = '', NS = 1, filters = None):
         if not self.__isOpen__(): raise E("Cannot make any queries - not connected to server anymore")
         s = pdate(s)
         e = pdate(e)
