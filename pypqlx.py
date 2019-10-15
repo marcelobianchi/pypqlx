@@ -166,7 +166,24 @@ class PQLXdb(object):
     #
     ## Public
     #
-    def PDF(self, s, e, N, S, C, L = '', NS = 1, filters = None):
+    def N_PDF(self, s, e, N, S, C, L = '', NS = 1, filters = None):
+        s = pdate(s)
+        e = pdate(e)
+        
+        if L == '': L = '--'
+        pdfs = []
+        
+        if NS == 1:
+            pdfs.append(self.PDF(s, e, N, S, C, L, filters))
+            return pdfs
+
+        step = (e - s) / NS
+        for i in range(NS):
+            pdfs.append(self.PDF(s + i * step, s + (i+1)*step, N, S, C, L, filters))
+            
+        return pdfs
+    
+    def PDF(self, s, e, N, S, C, L = '', filters = None):
         if not self.__isOpen__(): raise E("Cannot make any queries - not connected to server anymore")
         s = pdate(s)
         e = pdate(e)
@@ -182,7 +199,11 @@ class PQLXdb(object):
         PSDTable = "psd{}".format(ID)
         
         tables = 'FROM {} p, {} p1 WHERE p1.psd_pk = p.psd_fk'.format(PSDTable, PSDIndex)
-        timec  = 'UNIX_TIMESTAMP(TIMESTAMP(day,startT)) BETWEEN :s and :e'
+        
+        # This considers overlaps
+        timec  = 'UNIX_TIMESTAMP(TIMESTAMP(day,startT)) < :e and UNIX_TIMESTAMP(TIMESTAMP(day,endT)) > :s '
+        # in favor of an independent way of looking at time series
+        # timec  = 'UNIX_TIMESTAMP(TIMESTAMP(day,startT)) BETWEEN :s and :e'
         
         #
         ## Query Number of PSDs available in query and First / Last PSD Dates
@@ -230,8 +251,13 @@ if __name__ == "__main__":
     }
     
     try:
-        pdf = db.PDF('2017-12-01','2017-12-09 23:59:00', 'XC', 'VACA', 'HHZ')
-        pdf.PNG()
+        pdf  = db.PDF('2017-12-01','2017-12-09 23:59:00', 'XC', 'VACA', 'HHZ')
+        pdfs = db.N_PDF('2017-12-01','2017-12-09 23:59:00', 'XC', 'VACA', 'HHZ', NS = 5)
+        print(pdf)
+        print("")
+        for pdf in pdfs:
+            print(pdf)
+        # ~ pdf.PNG()
     except E as e:
         LOG("Errors found:")
         LOG(" E:> " + str(e))
