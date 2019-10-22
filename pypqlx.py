@@ -64,11 +64,29 @@ class PDF(object):
         self.first  = first
         self.last   = last
         self.ndata  = ndata
+        self.period = None
+        self.power  = None
+        self.count  = None
         self.N = N
         self.S = S
         self.C = C
         self.L = L if L != "" else "--"
-
+    
+    def mode(self):
+        pass
+    
+    def median(self):
+        pass
+    
+    def average(self):
+        pass
+    
+    def min(self):
+        pass
+    
+    def max(self):
+        pass
+    
     def __str__(self):
         return "{}.{}.{}.{} :: {} - {} / Max Hit. {}".format(self.N,self.S,self.L,self.C, self.first, self.last, self.ndata)
     
