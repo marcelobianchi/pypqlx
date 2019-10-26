@@ -73,19 +73,35 @@ class PDF(object):
         self.L = L if L != "" else "--"
     
     def mode(self):
-        pass
-    
+        mode = []
+        for i in sorted(set(pdf.period)):
+            a = pdf.power[max(pdf.count[pdf.period == i])]
+            mode.append(a)
+        return
+        
     def median(self):
         pass
     
     def average(self):
-        pass
+        avg = []
+        for i in sorted(set(pdf.period)):
+            a = sum(pdf.power[pdf.period == i] * pdf.count[pdf.period == i]) / sum(pdf.count[pdf.period == i])
+            avg.append(a)
+        return
     
     def min(self):
-        pass
+        minimun = []
+        for i in sorted(set(pdf.period)):
+            a = min(pdf.power[pdf.period == i])
+            minimun.append(a)
+        return
     
     def max(self):
-        pass
+        maximun =[]
+        for i in sorted(set(pdf.period)):
+            a = max(pdf.power[pdf.period == i])
+            maximun.append(a)
+        return
     
     def __str__(self):
         return "{}.{}.{}.{} :: {} - {} / Max Hit. {}".format(self.N,self.S,self.L,self.C, self.first, self.last, self.ndata)
