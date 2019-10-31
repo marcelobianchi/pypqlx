@@ -77,7 +77,7 @@ class PDF(object):
         for i in sorted(set(pdf.period)):
             a = pdf.power[max(pdf.count[pdf.period == i])]
             mode.append(a)
-        return
+        return mode
         
     def median(self):
         median = []
@@ -89,36 +89,34 @@ class PDF(object):
                 if abs(central - pos) >= 1:
                     a = pdf.power[pdf.period == i][cc == pos]
                 else:
-                    a = int((pdf.power[pdf.period == i][cc == pos] + 
-                    pdf.power[pdf.period == i][cc > pos][0])/2)
+                    a = int((pdf.power[pdf.period == i][cc == pos] + pdf.power[pdf.period == i][cc > pos][0])/2)
             else:  # impar
                 central = int((cc[-1] + 1) / 2) #ok
                 pos = cc[cc >= central][0]
                 a = pdf.power[pdf.period == i][cc == pos]
             median.append(a) 
-        return
-    
+        return median
     
     def average(self):
         avg = []
         for i in sorted(set(pdf.period)):
             a = sum(pdf.power[pdf.period == i] * pdf.count[pdf.period == i]) / sum(pdf.count[pdf.period == i])
             avg.append(a)
-        return
+        return avg
     
     def min(self):
         minimun = []
         for i in sorted(set(pdf.period)):
             a = min(pdf.power[pdf.period == i])
             minimun.append(a)
-        return
+        return minimun
     
     def max(self):
         maximun =[]
         for i in sorted(set(pdf.period)):
             a = max(pdf.power[pdf.period == i])
             maximun.append(a)
-        return
+        return maximun
     
     def __str__(self):
         return "{}.{}.{}.{} :: {} - {} / Max Hit. {}".format(self.N,self.S,self.L,self.C, self.first, self.last, self.ndata)
