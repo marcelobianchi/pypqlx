@@ -80,7 +80,24 @@ class PDF(object):
         return
         
     def median(self):
-        pass
+        median = []
+        for i in sorted(set(pdf.period)):
+            cc = np.cumsum(pdf.count[pdf.period == i])
+            if cc[-1] % 2 == 0:  #par
+                central = int(cc[-1] / 2)
+                pos = cc[cc >= central][0]
+                if abs(central - pos) >= 1:
+                    a = pdf.power[pdf.period == i][cc == pos]
+                else:
+                    a = int((pdf.power[pdf.period == i][cc == pos] + 
+                    pdf.power[pdf.period == i][cc > pos][0])/2)
+            else:  # impar
+                central = int((cc[-1] + 1) / 2) #ok
+                pos = cc[cc >= central][0]
+                a = pdf.power[pdf.period == i][cc == pos]
+            median.append(a) 
+        return
+    
     
     def average(self):
         avg = []
