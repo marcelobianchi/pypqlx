@@ -77,7 +77,7 @@ class PDF(object):
         for i in sorted(set(pdf.period)):
             a = pdf.power[max(pdf.count[pdf.period == i])]
             mode.append(a)
-        return mode
+        return np.array(mode)
         
     def median(self):
         median = []
@@ -95,28 +95,28 @@ class PDF(object):
                 pos = cc[cc >= central][0]
                 a = pdf.power[pdf.period == i][cc == pos]
             median.append(a) 
-        return median
+        return np.array(median)
     
     def average(self):
         avg = []
         for i in sorted(set(pdf.period)):
             a = sum(pdf.power[pdf.period == i] * pdf.count[pdf.period == i]) / sum(pdf.count[pdf.period == i])
             avg.append(a)
-        return avg
+        return np.array(avg)
     
     def min(self):
         minimun = []
         for i in sorted(set(pdf.period)):
             a = min(pdf.power[pdf.period == i])
             minimun.append(a)
-        return minimun
+        return np.array(minimun)
     
     def max(self):
         maximun =[]
         for i in sorted(set(pdf.period)):
             a = max(pdf.power[pdf.period == i])
             maximun.append(a)
-        return maximun
+        return np.array(maximun)
     
     def __str__(self):
         return "{}.{}.{}.{} :: {} - {} / Max Hit. {}".format(self.N,self.S,self.L,self.C, self.first, self.last, self.ndata)
