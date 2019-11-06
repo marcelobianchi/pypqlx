@@ -74,47 +74,47 @@ class PDF(object):
     
     def mode(self):
         mode = []
-        for i in sorted(set(pdf.period)):
-            a = pdf.power[max(pdf.count[pdf.period == i])]
+        for i in sorted(set(self.period)):
+            a = self.power[max(self.count[self.period == i])]
             mode.append(a)
         return np.array(mode)
         
     def median(self):
         median = []
-        for i in sorted(set(pdf.period)):
-            cc = np.cumsum(pdf.count[pdf.period == i])
+        for i in sorted(set(self.period)):
+            cc = np.cumsum(self.count[self.period == i])
             if cc[-1] % 2 == 0:  #par
                 central = int(cc[-1] / 2)
                 pos = cc[cc >= central][0]
                 if abs(central - pos) >= 1:
-                    a = pdf.power[pdf.period == i][cc == pos]
+                    a = self.power[self.period == i][cc == pos]
                 else:
-                    a = int((pdf.power[pdf.period == i][cc == pos] + pdf.power[pdf.period == i][cc > pos][0])/2)
+                    a = int((self.power[self.period == i][cc == pos] + self.power[self.period == i][cc > pos][0])/2)
             else:  # impar
                 central = int((cc[-1] + 1) / 2) #ok
                 pos = cc[cc >= central][0]
-                a = pdf.power[pdf.period == i][cc == pos]
+                a = self.power[self.period == i][cc == pos]
             median.append(a) 
         return np.array(median)
     
     def average(self):
-        avg = []
-        for i in sorted(set(pdf.period)):
-            a = sum(pdf.power[pdf.period == i] * pdf.count[pdf.period == i]) / sum(pdf.count[pdf.period == i])
-            avg.append(a)
-        return np.array(avg)
+        average = []
+        for i in sorted(set(self.period)):
+            a = sum(self.power[self.period == i] * self.count[self.period == i]) / sum(self.count[self.period == i])
+            average.append(a)
+        return np.array(average)
     
     def min(self):
         minimun = []
-        for i in sorted(set(pdf.period)):
-            a = min(pdf.power[pdf.period == i])
+        for i in sorted(set(self.period)):
+            a = min(self.power[self.period == i])
             minimun.append(a)
         return np.array(minimun)
     
     def max(self):
         maximun =[]
-        for i in sorted(set(pdf.period)):
-            a = max(pdf.power[pdf.period == i])
+        for i in sorted(set(self.period)):
+            a = max(self.power[self.period == i])
             maximun.append(a)
         return np.array(maximun)
     
