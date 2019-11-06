@@ -73,19 +73,50 @@ class PDF(object):
         self.L = L if L != "" else "--"
     
     def mode(self):
-        pass
-    
+        mode = []
+        for i in sorted(set(self.period)):
+            a = self.power[max(self.count[self.period == i])]
+            mode.append(a)
+        return np.array(mode)
+        
     def median(self):
-        pass
+        median = []
+        for i in sorted(set(self.period)):
+            cc = np.cumsum(self.count[self.period == i])
+            if cc[-1] % 2 == 0:  #par
+                central = int(cc[-1] / 2)
+                pos = cc[cc >= central][0]
+                if abs(central - pos) >= 1:
+                    a = self.power[self.period == i][cc == pos]
+                else:
+                    a = int((self.power[self.period == i][cc == pos] + self.power[self.period == i][cc > pos][0])/2)
+            else:  # impar
+                central = int((cc[-1] + 1) / 2) #ok
+                pos = cc[cc >= central][0]
+                a = self.power[self.period == i][cc == pos]
+            median.append(a) 
+        return np.array(median)
     
     def average(self):
-        pass
+        average = []
+        for i in sorted(set(self.period)):
+            a = sum(self.power[self.period == i] * self.count[self.period == i]) / sum(self.count[self.period == i])
+            average.append(a)
+        return np.array(average)
     
     def min(self):
-        pass
+        minimun = []
+        for i in sorted(set(self.period)):
+            a = min(self.power[self.period == i])
+            minimun.append(a)
+        return np.array(minimun)
     
     def max(self):
-        pass
+        maximun =[]
+        for i in sorted(set(self.period)):
+            a = max(self.power[self.period == i])
+            maximun.append(a)
+        return np.array(maximun)
     
     def __str__(self):
         return "{}.{}.{}.{} :: {} - {} / Max Hit. {}".format(self.N,self.S,self.L,self.C, self.first, self.last, self.ndata)
