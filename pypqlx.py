@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function, division
-import sys, datetime
+import sys, datetime, os
 
 if sys.version_info[0] < 3:
     print("\n ** Needs Python 3 to run. ** \n", file = sys.stderr)
@@ -10,6 +10,9 @@ if sys.version_info[0] < 3:
 
 import records
 import numpy as np
+
+
+NOISE_MODEL_FILE = os.path.join(os.path.dirname(__file__), "data", "noise_models.npz")
 
 #
 ## Methods
@@ -44,6 +47,26 @@ def ptime(strtime):
     t = datetime.datetime.strftime(strtime, fmt).time()
     
     return t
+
+def get_nhnm():
+    """
+    Returns periods and psd values for the New High Noise Model.
+    For information on New High/Low Noise Model see [Peterson1993]_.
+    """
+    data = np.load(NOISE_MODEL_FILE)
+    periods = data['model_periods']
+    nlnm = data['high_noise']
+    return (periods, nlnm)
+
+def get_nlnm():
+    """
+    Returns periods and psd values for the New Low Noise Model.
+    For information on New High/Low Noise Model see [Peterson1993]_.
+    """
+    data = np.load(NOISE_MODEL_FILE)
+    periods = data['model_periods']
+    nlnm = data['low_noise']
+    return (periods, nlnm)
 
 #
 ## Classes
@@ -203,8 +226,12 @@ class PQLXdb(object):
         sql = 'SELECT chni_pk FROM nslc WHERE ntw=:ntw and stn=:stn and chn=:chn and loc=:loc'
         r = self.idx.query(sql, ntw = N, stn = S, chn = C, loc = L, fetchall=True)
         if len(r) != 1: raise E("{}.{}.{}.{} :: Not found in PQLx DB.".format(N,S,L,C))
-        
-        return r.one().chni_pk
+
+        try:
+            return r.one().chni_pk
+        except:
+            return r.first().chni_pk
+
 
     def __isOpen__(self):
         return self.idx.open
@@ -259,11 +286,19 @@ class PQLXdb(object):
         #
         sql = 'SELECT count(distinct(p1.psd_pk)) as N {} and {}'.format(tables, timec)
         r = self.data.query(sql, s = s.timestamp(), e = e.timestamp(), fetchall = True)
-        nct =  r.one().N
+        try:
+            nct =  r.one().N
+        except:
+            nct =  r.first().N
+
         
         sql = 'SELECT min(TIMESTAMP(day,startT)) as first, max(TIMESTAMP(day,startT)) as last {} and {}'.format(tables, timec)
         r = self.data.query(sql, s = s.timestamp(), e = e.timestamp(), fetchall = True)
-        r = r.one()
+        try:
+            r = r.one()
+        except:
+            r = r.first()
+
         
         pdf = PDF(r.first, r.last, nct, N, S, C, L)
         
@@ -284,24 +319,25 @@ class PQLXdb(object):
         if self.data.open:  self.data.close()
         if self.stats.open: self.stats.close()
 
+
 #
 ## Main Code
 #
 if __name__ == "__main__":
-    db = PQLXdb(user     = sys.argv[1],
-                password = sys.argv[2],
-                machine  = sys.argv[3],
-                basedb   = sys.argv[4])
-    
+    db = PQLXdb(user=sys.argv[1],
+                password=sys.argv[2],
+                machine=sys.argv[3],
+                basedb=sys.argv[4])
+
     filters = {
-        'minhour' : '08:00:00',
-        'maxhour' : None,
-        'dow'     : ('Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa')
+        'minhour': '08:00:00',
+        'maxhour': None,
+        'dow': ('Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa')
     }
-    
+
     try:
-        pdf  = db.PDF('2017-12-01','2017-12-09 23:59:00', 'XC', 'VACA', 'HHZ')
-        pdfs = db.N_PDF('2017-12-01','2017-12-09 23:59:00', 'XC', 'VACA', 'HHZ', NS = 5)
+        pdf = db.PDF('2017-12-01', '2017-12-09 23:59:00', 'XC', 'VACA', 'HHZ')
+        pdfs = db.N_PDF('2017-12-01', '2017-12-09 23:59:00', 'XC', 'VACA', 'HHZ', NS=5)
         print(pdf)
         print("")
         for pdf in pdfs:
@@ -310,5 +346,5 @@ if __name__ == "__main__":
     except E as e:
         LOG("Errors found:")
         LOG(" E:> " + str(e))
-    
+
     db.close()
