@@ -37,6 +37,7 @@ def plot_average(periods, average_noise, w3_average_noise, w6_average_noise, net
     print(imgfile,'generated.')
     if show:
         plt.show()
+    plt.close()
 
 
 def make_cmdline_parser():
