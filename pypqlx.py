@@ -95,16 +95,36 @@ class PDF(object):
         self.C = C
         self.L = L if L != "" else "--"
     
-    def mode(self):
+    '''
+    Private Interface
+    '''
+    
+    def __str__(self):
+        return "{}.{}.{}.{} :: {} - {} / Max Hit. {}".format(self.N,self.S,self.L,self.C, self.first, self.last, self.ndata)
+    
+    @property
+    def __periods__(self):
+        '''
+        Returns a sorted list of unique periods in object
+        '''
+        if not hasattr(self, '__cache_period__'):
+            self.__cache_period__ = np.array(sorted(set(self.period)))
+        return self.__cache_period__
+    
+    '''
+    Public Interface
+    '''
+    
+    def mode(self, periods = False):
         mode = []
-        for i in sorted(set(self.period)):
+        for i in self.__periods__:
             a = self.power[max(self.count[self.period == i])]
             mode.append(a)
-        return np.array(mode)
-        
-    def median(self):
+        return (np.array(mode), self.__periods__) if periods else np.array(mode)
+    
+    def median(self, periods = False):
         median = []
-        for i in sorted(set(self.period)):
+        for i in self.__periods__:
             cc = np.cumsum(self.count[self.period == i])
             if cc[-1] % 2 == 0:  #par
                 central = int(cc[-1] / 2)
@@ -118,31 +138,28 @@ class PDF(object):
                 pos = cc[cc >= central][0]
                 a = self.power[self.period == i][cc == pos]
             median.append(a) 
-        return np.array(median)
+        return (np.array(median), self.__periods__) if periods else np.array(median)
     
-    def average(self):
+    def average(self, periods = False):
         average = []
-        for i in sorted(set(self.period)):
+        for i in self.__periods__:
             a = sum(self.power[self.period == i] * self.count[self.period == i]) / sum(self.count[self.period == i])
             average.append(a)
-        return np.array(average)
+        return (np.array(average), self.__periods__) if periods else np.array(average)
     
-    def min(self):
+    def min(self, periods = False):
         minimun = []
-        for i in sorted(set(self.period)):
+        for i in self.__periods__:
             a = min(self.power[self.period == i])
             minimun.append(a)
-        return np.array(minimun)
+        return (np.array(minimun), self.__periods__) if periods else np.array(minimun)
     
-    def max(self):
+    def max(self, periods = False):
         maximun =[]
-        for i in sorted(set(self.period)):
+        for i in self.__periods__:
             a = max(self.power[self.period == i])
             maximun.append(a)
-        return np.array(maximun)
-    
-    def __str__(self):
-        return "{}.{}.{}.{} :: {} - {} / Max Hit. {}".format(self.N,self.S,self.L,self.C, self.first, self.last, self.ndata)
+        return (np.array(maximun), self.__periods__) if periods else np.array(maximun)
     
     def fromrecords(self, data):
         '''

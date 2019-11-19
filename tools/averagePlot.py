@@ -134,9 +134,8 @@ if __name__ == "__main__":
         pdf_data = []
 
         try:
-            current_pdf = db.PDF(start, end, net, sta, cha, loc)
-            pers        = sorted(set(current_pdf.period))
-            pdf_data    = current_pdf.average()
+            current_pdf    = db.PDF(start, end, net, sta, cha, loc)
+            pdf_data, pers = current_pdf.average(True)
         except:
             print("Chosen database does not contain information about %s. Skipping..." % sta)
             continue
