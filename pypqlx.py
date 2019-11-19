@@ -105,18 +105,7 @@ class PDF(object):
     def median(self):
         median = []
         for i in sorted(set(self.period)):
-            cc = np.cumsum(self.count[self.period == i])
-            if cc[-1] % 2 == 0:  #par
-                central = int(cc[-1] / 2)
-                pos = cc[cc >= central][0]
-                if abs(central - pos) >= 1:
-                    a = self.power[self.period == i][cc == pos]
-                else:
-                    a = int((self.power[self.period == i][cc == pos] + self.power[self.period == i][cc > pos][0])/2)
-            else:  # impar
-                central = int((cc[-1] + 1) / 2) #ok
-                pos = cc[cc >= central][0]
-                a = self.power[self.period == i][cc == pos]
+            a = self.power[self.period == i][np.cumsum(self.count[self.period == i]) / np.sum(self.count[self.period == i]) >= 0.5][0]
             median.append(a) 
         return np.array(median)
     
