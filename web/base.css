@@ -1,0 +1,18 @@
+body {
+    font: 12px, arial, sans-serif;
+    background: #cccccc;
+    margin: 0;
+    padding: 15px;
+}
+
+h1 { 
+    margin: 0 0 5px 0;
+}
+
+li {
+    margin: 0 0 8px 0;
+}
+
+a:visited {
+    color: blue;
+}
