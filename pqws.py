@@ -79,7 +79,7 @@ class PQLXWebServer(Resource):
             return pq_query()
         
         if name == "application.wadl":
-            return File("{}/application.wadl".format(SITEBASE))
+            return File("{}/application.wadl".format(SITEBASE), defaultType='application/xml')
         
         if name == "":
             return pq_help()
