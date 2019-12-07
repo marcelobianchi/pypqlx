@@ -1,15 +1,17 @@
 from __future__ import print_function, division
 
 from twisted.web.server import Site
-from twisted.web.resource import Resource
+from twisted.web.resource import Resource, NoResource
 from twisted.internet import reactor, endpoints
 from twisted.web.static import File
 
 ##
 # HTML helper methods
 ##
+SITEBASE = 'web'
 
 def page(pagetitle, content):
+    global SITEBASE
     msg = '''
 <!DOCTYPE html>
 
@@ -17,7 +19,7 @@ def page(pagetitle, content):
 <head>
     <meta charset="UTF-8">
     <title>{}</title>
-    <link rel="stylesheet" href="web/base.css">
+    <link rel="stylesheet" href="{}/base.css">
 </head>
 
 <body>
@@ -26,7 +28,7 @@ def page(pagetitle, content):
 
 </html>
 '''
-    return msg.format(pagetitle, content)
+    return msg.format(pagetitle, SITEBASE, content)
 
 def title(content, level = 1):
     return '<h{}>{}</h{}>\n\n'.format(level, content,level)
@@ -54,13 +56,15 @@ class pq_help(Resource):
     isLeaf = True
     
     def render_GET(self, request):
-        msg = title('Help Page')
-        msg += p('This is our pqlx system @ localhost serving PDFs')
+        msg = title('PQLX WebServer Help Page')
+        msg += p('This is pqlx system @ localhost serving PDFs & more!')
         lis = [
             li(a('application.wadl', '/application.wadl') + ': The Query method is the one that you should use to get data.'),
             li(a('query', '/query') + ': The Query method is the one that you should use to get data.'),
         ]
+        msg += title('Available Resources are:', 2)
         msg += ol(lis)
+        
         return page('Help Page', msg)
 
 class pq_query(Resource):
@@ -69,23 +73,25 @@ class pq_query(Resource):
     def render_GET(self, request):
         return ""
 
-class PQLXServer(Resource):
+class PQLXWebServer(Resource):
     def getChild(self, name, request):
         if name == "query":
             return pq_query()
         
         if name == "application.wadl":
-            return File("web/application.wadl")
+            return File("{}/application.wadl".format(SITEBASE))
         
-        return pq_help()
+        if name == "":
+            return pq_help()
+        return NoResource()
 
 ##
 # Main Reactor
 ##
 
 if __name__ == "__main__":
-    root = PQLXServer()
-    root.putChild("web", File("web/"))
+    root = PQLXWebServer()
+    root.putChild(SITEBASE, File("{}/".format(SITEBASE)))
     
     factory = Site(root)
     endpoint = endpoints.TCP4ServerEndpoint(reactor, 8080)
