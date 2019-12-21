@@ -129,6 +129,9 @@ class PDF(object):
             median.append(a) 
         return (np.array(median), self.__periods__) if periods else np.array(median)
     
+    def mean(self, periods = False):
+        return self.average(periods)
+    
     def average(self, periods = False):
         average = []
         for i in self.__periods__:
@@ -169,6 +172,25 @@ class PDF(object):
         self.count  = np.array(count)
         
         return
+    
+    def DICT(self, method, periods = False):
+        m = getattr(self, method)
+        if m is None: raise E("Bad requested method")
+        db, per = m(True)
+        print(db, per)
+        db = list(map(float, db))
+        per = list(map(float, per))
+        
+        me = {
+            'NSLC' : "{}.{}.{}.{}".format(self.N, self.S, self.L, self.C),
+            'first' : self.first,
+            'last'  : self.last,
+            'method'  : method,
+            'db': db,
+            'periods' : per if periods else None
+        }
+        
+        return me
     
     def PNG(self, where = sys.stdout):
         '''

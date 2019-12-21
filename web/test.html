@@ -1,0 +1,66 @@
+<html>
+<head>
+	<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+	<script
+		src="https://code.jquery.com/jquery-2.2.4.min.js"
+		integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44="
+		crossorigin="anonymous">
+	</script>
+</head>
+
+<body>
+
+<div id="tester" style="width:800px;height:450px; margin: auto;">
+</div>
+
+<script>
+	TESTER = document.getElementById('tester');
+	$.getJSON("http://localhost:8080/query?net=BL&quantity=mean&sta=AQDB&loc=--&cha=HHZ&starttime=2019-01-01&endtime=2019-02-01&nsegments=1&includemodels=true", function( data ) {
+		var layout = {
+			title: {
+				text: data.pdfs[0].first + " - " + data.pdfs[0].last
+			},
+			font: {
+				size: 12
+			},
+			xaxis: {
+				type: 'log',
+				autorange: true
+			},
+			yaxis: {
+				type: 'normal',
+				autorange: true
+				},
+			showlegend: true,
+			legend: {"orientation": "h"}
+		};
+
+		var data = [
+			{
+				x: data.pdfs[0].periods,
+				y: data.pdfs[0].db,
+				mode: 'markers',
+				type: 'scatter',
+				name: data.pdfs[0].NSLC + " (" + data.pdfs[0].method + ")"
+			},
+			{
+				x: data.models.nlnm.per,
+				y: data.models.nlnm.db,
+				type: 'scatter',
+				name: 'Low Noise Model'
+			},
+			{
+				x: data.models.nhnm.per,
+				y: data.models.nhnm.db,
+				type: 'scatter',
+				name: 'High Noise Model'
+			},
+		];
+		Plotly.plot(TESTER, data, layout);
+	});
+</script>
+
+</body>
+
+
+</html>

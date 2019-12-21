@@ -2,12 +2,14 @@
 
 from __future__ import print_function, division
 
+import sys, json
+
 from twisted.web.server import Site
 from twisted.web.resource import Resource, NoResource
 from twisted.internet import reactor, endpoints
 from twisted.web.static import File
 
-from pypqlx import pdate, ptime
+from pypqlx import pdate, ptime, PQLXdb, get_nhnm, get_nlnm, E
 
 ##
 # HTML helper methods
@@ -73,7 +75,11 @@ class pq_help(Resource):
 
 class pq_query(Resource):
     isLeaf = True
-
+    
+    def __init__(self, db):
+            Resource.__init__(self)
+            self.db = db
+    
     def __parseargs__(self, args):
         def ploc(v): return ("--" if str(v) == "" else str(v))
         def pdow(v):
@@ -123,20 +129,62 @@ class pq_query(Resource):
         
         return collectedargs
     
+    def __models__(self, yes):
+        if yes is False or None: return None
+        hper, hmodel = get_nhnm()
+        lper, lmodel = get_nlnm()
+        
+        model = {
+            'nhnm' : {
+                'per' : list(hper),
+                'db'  : list(hmodel)
+            },
+            'nlnm' : {
+                'per' : list(lper),
+                'db'  : list(lmodel)
+            }
+        }
+        return model
+    
     def render_GET(self, request):
+        request.setHeader('Access-Control-Allow-Origin', '*')
+        request.setHeader('Access-Control-Allow-Methods', 'GET')
+        request.setHeader('Access-Control-Allow-Headers', 'x-prototype-version,x-requested-with')
+        
         try:
             args = self.__parseargs__(request.args)
         except ValueError as e:
             request.setResponseCode(400)
             return str(e).encode('utf-8')
         
-        return str(args).encode('utf-8')
+        try:
+            pdfs = self.db.N_PDF(args['starttime'], args['endtime'],
+                                args['net'], args['sta'], args['cha'], args['loc'],
+                                NS = args['nsegments'])
+            
+            if len(pdfs) == 0:
+                request.setResponseCode(204)
+                return "".encode('utf-8')
+            
+            result = {
+                'pdfs'    : list(map(lambda x: x.DICT(args['quantity'], True), pdfs)),
+                'models'  : self.__models__(args['includemodels'])
+            }
+        except E as e:
+            request.setResponseCode(400)
+            return str(e).encode('utf-8')
+                
+        return json.dumps(result, indent = 2).encode('utf-8')
 
 class PQLXWebServer(Resource):
+    def __init__(self, db):
+            Resource.__init__(self)
+            self.db = db
+    
     def getChild(self, name, request):
         name = name.decode('utf-8')
         if name == "query":
-            return pq_query()
+            return pq_query(self.db)
         
         if name == "application.wadl":
             return File("{}/application.wadl".format(SITEBASE), defaultType='application/xml')
@@ -151,7 +199,12 @@ class PQLXWebServer(Resource):
 ##
 
 if __name__ == "__main__":
-    root = PQLXWebServer()
+    db = PQLXdb(user=sys.argv[1],
+            password=sys.argv[2],
+            machine=sys.argv[3],
+            basedb=sys.argv[4])
+    
+    root = PQLXWebServer(db)
     root.putChild(SITEBASE.encode('utf-8'), File("{}/".format(SITEBASE)))
     
     factory = Site(root)
