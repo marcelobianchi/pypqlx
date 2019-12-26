@@ -9,69 +9,92 @@
 			crossorigin="anonymous">
 		</script>
 		<style>
-		input {border: none; padding: 5px; width: 150px; margin: 2px;}
-		select{border: none; padding: 5px; width: 150px; margin: 2px;}
+		body  {background-image: linear-gradient(-45deg, black, gray); color: white;}
+		input, select {border: none; background: #ffffff66; padding: 5px; width: 150px; margin: 2px;}
 		</style>
 	</head>
 
 	<body>
-		<div style="float:left; width: 180px; border: 1px Solid black; padding: 5px; height: 520px; margin: 5px;">
-			Channel Codes:<br/>
-			<input id="net" value="BL" placeholder="Network code" maxlength=2/><br/>
-			<input id="loc" value="--" placeholder="Location code" maxlength=2/><br/>
-			<input id="sta" value="AQDB" placeholder="Station code" maxlength=5/><br/>
-			<input id="cha" value="HHZ" placeholder="Channel code" maxlength=3/><br/>
+		<div style="margin: auto; width: 1024px; padding: 0;">
+			<div style="float:left; width: 180px; border: 1px Solid white; padding: 5px; height: 520px; margin: 5px;">
+				FDSN Codes:<br/>
+				<input id="net" value="BL" placeholder="Network code" maxlength=2/><br/>
+				<input id="sta" value="AQDB" placeholder="Station code" maxlength=5/><br/>
+				<input id="loc" value="--" placeholder="Location code (-- for empty)" maxlength=2/><br/>
+				<input id="cha" value="HHZ" placeholder="Channel code" maxlength=3/><br/>
 
-			<br/>Time Intervals:<br/>
-			<input id="starttime" type="text" value="2019-01-01" placeholder="Time start (ISO)"/><br/>
-			<input id="endtime"   type="text" value="2019-02-01" placeholder="Time end (ISO)"/><br/>
+				<br/>Time Intervals:<br/>
+				<input id="starttime" type="text" value="2019-01-01" placeholder="Time start (ISO)"/><br/>
+				<input id="endtime"   type="text" value="2019-02-01" placeholder="Time end (ISO)"/><br/>
 
-			<br/>Quantity:<br/>
-			<select id="quantity" name="quantity">
-				<option value="mean" selected="selected">Mean</option>
-				<option value="mode">Mode</option>
-				<option value="median">Median</option>
-				<option value="min">Min</option>
-				<option value="max">Max</option>
-			</select><br/>
+				<br/>Number of Segments [<span id="nseg" style="text-decoration: underline; font-style: italic;">3</span>]:<br/>
+				<input id="nsegments" type="range" min="1" max="25" value="3" /><br/>
 
-			<label><input type="checkbox" id="std" style="width: 18px; height: 18px; margin: 5px;vertical-align: middle;"/>Show Stdev.</label><br/>
+				<br/>Quantity:<br/>
+				<select id="quantity" name="quantity">
+					<option value="mean" selected="selected">Mean</option>
+					<option value="mode">Mode</option>
+					<option value="median">Median</option>
+					<option value="min">Min</option>
+					<option value="max">Max</option>
+				</select><br/>
 
-			<br/>Number of Segments:<br/>
-			<input id="nsegments" type="range" min="1" max="25" value="1" /><br/>
+				<label><input type="checkbox" id="std" style="width: 18px; height: 18px; margin: 5px;vertical-align: middle;"/>Show Stdev.</label><br/>
 
-			<br/>
-			<input type="button" value="plot"/>
-			
-			<br style="clear: both;"/>
+				<br/>
+				<input type="button" value="Fetch &amp; Plot"/>
+				
+				<p style="text-align: center;">
+					<span id="fail" style="color: red;"></span>
+					<span id="done" style="color: green;"></span>
+				</p>
+				<br style="clear: both;"/>
+			</div>
+
+			<div id="plot" style="float: left; width:800px; height: 520px; padding: 5px; margin: 5px; border: 1px Solid white;"></div>
+
+			<div id="URL" style="background: #ffffff77; clear: both; width: 992px; border: 1px Solid white; padding: 5px 10px 5px 10px; margin: 5px;"><i>Data Feed:</i> <a href=""></a></div>
 		</div>
-
-		<div id="plot" style="float: left; width:800px; height: 520px; padding: 5px; margin: 5px; border: 1px Solid white;"></div>
-
-		<div id="URL" style="clear: both; width: 1000px; border: 0px Solid black; padding: 5px; margin: 5px;">Data URL: <a href=""></a></div>
-
 		<script>
-		var BASEURL = "http://localhost:8080/query?net=#NET#&quantity=#QUANTITY#&sta=#STA#&loc=#LOC#&cha=#CHA#&starttime=#STARTTIME#&endtime=#ENDTIME#&nsegments=#NSEGMENTS#&includemodels=true&includestd=#STD#";
+		var BASEURL = "/query?net=#NET#&quantity=#QUANTITY#&sta=#STA#&loc=#LOC#&cha=#CHA#&starttime=#STARTTIME#&endtime=#ENDTIME#&nsegments=#NSEGMENTS#&includemodels=true&includestd=#STD#";
+
+		var layout = {
+			title: {
+				text: undefined
+			},
+			font: {
+				size: 12
+			},
+			xaxis: {
+				title: {
+					text: 'Periods (s)'
+				},
+				type: 'log',
+				autorange: true
+			},
+			yaxis: {
+				type: 'normal',
+				title: {
+					text: 'dB'
+				},
+				autorange: true
+				},
+			showlegend: true,
+			legend: {
+				orientation: "h",
+				x : 0,
+				y : -0.2
+			}
+		};
+		
+		function changed(item) {
+			$(item.target).css('color', 'red');
+			$("input[type=button]").css('color', 'red');
+		}
 
 		function plotPDF(data) {
-			var layout = {
-				title: {
-					text: data.pdfs[0].first + " - " + data.pdfs[data.pdfs.length-1].last
-				},
-				font: {
-					size: 12
-				},
-				xaxis: {
-					type: 'log',
-					autorange: true
-				},
-				yaxis: {
-					type: 'normal',
-					autorange: true
-					},
-				showlegend: true,
-				legend: {"orientation": "h"}
-			};
+
+			layout.title.text = data.pdfs[0].first + " - " + data.pdfs[data.pdfs.length-1].last;
 
 			var plotable = [];
 
@@ -96,20 +119,33 @@
 				x: data.models.nlnm.per,
 				y: data.models.nlnm.db,
 				type: 'scatter',
-				name: 'Low Noise Model'
+				name: 'Low Noise Model',
+				showlegend: false
 			});
 
 			plotable.push({
 				x: data.models.nhnm.per,
 				y: data.models.nhnm.db,
 				type: 'scatter',
-				name: 'High Noise Model'
+				name: 'High Noise Model',
+				showlegend: false
 			});
 
 			Plotly.react(document.getElementById('plot'), plotable, layout);
 		}
 
 		function replot() {
+			$("#fail").text("");
+			$("#done").text("Fetching data ... ");
+
+			$("#net").css('color', 'black');
+			$("#sta").css('color', 'black');
+			$("#loc").css('color', 'black');
+			$("#cha").css('color', 'black');
+			$("#starttime").css('color', 'black');
+			$("#endtime").css('color', 'black');
+			$("input[type=button]").css('color', 'black');
+
 			var URL = BASEURL.replace("#NET#", $("input[id=net]").val());
 			var URL =     URL.replace("#STA#", $("input[id=sta]").val());
 			var URL =     URL.replace("#LOC#", $("input[id=loc]").val());
@@ -123,14 +159,36 @@
 
 			var URL =     URL.replace("#STD#",  $("#std").is(':checked'));
 
-			$.getJSON(URL, plotPDF);
+			$("body").css("cursor", "progress");
+			Plotly.react(document.getElementById('plot'), null, layout);
 
 			$("#URL a").text(URL);
 			$("#URL a").attr("href", URL)
+
+			$.getJSON(URL, plotPDF).fail(function() {
+				$("#fail").text("Failed to get DATA!");
+			}).always(function() {
+				$("#done").text("");
+				$("body").css("cursor", "default");
+			});
 		}
-
+		
 		$("input[type=button]").click(replot);
-
+		$("input[type=checkbox]").change(replot);
+		$("select").change(replot);
+		$("input[id=nsegments]").change(function () {
+			$("#nseg").text($("input[id=nsegments]").val());
+			replot();
+		});
+		
+		$("#net").change(changed);
+		$("#sta").change(changed);
+		$("#loc").change(changed);
+		$("#cha").change(changed);
+		$("#starttime").change(changed);
+		$("#endtime").change(changed);
+		
+		replot();
 		</script>
 
 	</body>

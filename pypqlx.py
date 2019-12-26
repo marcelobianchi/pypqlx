@@ -191,24 +191,28 @@ class PDF(object):
         return
     
     def DICT(self, method, periods = False, std = False):
+        '''
+        Returns a dictionary representation of the PDF class in a
+        appropriate form to generate a JSON object
+        '''
         m = getattr(self, method)
         if m is None: raise E("Bad requested method")
-        db, per = m(True)
+        dbs, pers = m(True)
         
-        db   = list(map(float, db))
-        per  = list(map(float, per))
+        dbs   = list(map(float, dbs))
+        pers  = list(map(float, pers))
         stds = list(map(float, self.std(False))) if std is True else None
-        me = {
-            'NSLC' : "{}.{}.{}.{}".format(self.N, self.S, self.L, self.C),
-            'first' : self.first,
-            'last'  : self.last,
+        as_dict = {
+            'NSLC'    : "{}.{}.{}.{}".format(self.N, self.S, self.L, self.C),
+            'first'   : self.first,
+            'last'    : self.last,
             'method'  : method,
-            'dbs': db,
-            'periods' : per if periods else None,
-            'stds' :  stds
+            'dbs'     : dbs,
+            'periods' : pers if periods else None,
+            'stds'    : stds
         }
         
-        return me
+        return as_dict
     
     def PNG(self, where = sys.stdout):
         '''

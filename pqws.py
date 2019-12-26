@@ -65,8 +65,9 @@ class pq_help(Resource):
         msg = title('PQLX WebServer Help Page')
         msg += p('This is pqlx system @ localhost serving PDFs & more!')
         lis = [
-            li(a('application.wadl', '/application.wadl') + ': The Query method is the one that you should use to get data.'),
             li(a('query', '/query') + ': The Query method is the one that you should use to get data.'),
+            li(a('application.wadl', '/application.wadl') + ': The Query method is the one that you should use to get data.'),
+            li(a('web teste', '/web/test.html') + ': This is a web test/demonstration page for the system.'),
         ]
         msg += title('Available Resources are:', 2)
         msg += ol(lis)
