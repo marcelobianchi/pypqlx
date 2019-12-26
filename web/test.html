@@ -1,66 +1,137 @@
+<!DOCTYPE html>
 <html>
-<head>
-	<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-	<script
-		src="https://code.jquery.com/jquery-2.2.4.min.js"
-		integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44="
-		crossorigin="anonymous">
-	</script>
-</head>
+	<head>
+		<link rel="stylesheet" href="base.css">
+		<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+		<script
+			src="https://code.jquery.com/jquery-2.2.4.min.js"
+			integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44="
+			crossorigin="anonymous">
+		</script>
+		<style>
+		input {border: none; padding: 5px; width: 150px; margin: 2px;}
+		select{border: none; padding: 5px; width: 150px; margin: 2px;}
+		</style>
+	</head>
 
-<body>
+	<body>
+		<div style="float:left; width: 180px; border: 1px Solid black; padding: 5px; height: 520px; margin: 5px;">
+			Channel Codes:<br/>
+			<input id="net" value="BL" placeholder="Network code" maxlength=2/><br/>
+			<input id="loc" value="--" placeholder="Location code" maxlength=2/><br/>
+			<input id="sta" value="AQDB" placeholder="Station code" maxlength=5/><br/>
+			<input id="cha" value="HHZ" placeholder="Channel code" maxlength=3/><br/>
 
-<div id="tester" style="width:800px;height:450px; margin: auto;">
-</div>
+			<br/>Time Intervals:<br/>
+			<input id="starttime" type="text" value="2019-01-01" placeholder="Time start (ISO)"/><br/>
+			<input id="endtime"   type="text" value="2019-02-01" placeholder="Time end (ISO)"/><br/>
 
-<script>
-	TESTER = document.getElementById('tester');
-	$.getJSON("http://localhost:8080/query?net=BL&quantity=mean&sta=AQDB&loc=--&cha=HHZ&starttime=2019-01-01&endtime=2019-02-01&nsegments=1&includemodels=true", function( data ) {
-		var layout = {
-			title: {
-				text: data.pdfs[0].first + " - " + data.pdfs[0].last
-			},
-			font: {
-				size: 12
-			},
-			xaxis: {
-				type: 'log',
-				autorange: true
-			},
-			yaxis: {
-				type: 'normal',
-				autorange: true
+			<br/>Quantity:<br/>
+			<select id="quantity" name="quantity">
+				<option value="mean" selected="selected">Mean</option>
+				<option value="mode">Mode</option>
+				<option value="median">Median</option>
+				<option value="min">Min</option>
+				<option value="max">Max</option>
+			</select><br/>
+
+			<label><input type="checkbox" id="std" style="width: 18px; height: 18px; margin: 5px;vertical-align: middle;"/>Show Stdev.</label><br/>
+
+			<br/>Number of Segments:<br/>
+			<input id="nsegments" type="range" min="1" max="25" value="1" /><br/>
+
+			<br/>
+			<input type="button" value="plot"/>
+			
+			<br style="clear: both;"/>
+		</div>
+
+		<div id="plot" style="float: left; width:800px; height: 520px; padding: 5px; margin: 5px; border: 1px Solid white;"></div>
+
+		<div id="URL" style="clear: both; width: 1000px; border: 0px Solid black; padding: 5px; margin: 5px;">Data URL: <a href=""></a></div>
+
+		<script>
+		var BASEURL = "http://localhost:8080/query?net=#NET#&quantity=#QUANTITY#&sta=#STA#&loc=#LOC#&cha=#CHA#&starttime=#STARTTIME#&endtime=#ENDTIME#&nsegments=#NSEGMENTS#&includemodels=true&includestd=#STD#";
+
+		function plotPDF(data) {
+			var layout = {
+				title: {
+					text: data.pdfs[0].first + " - " + data.pdfs[data.pdfs.length-1].last
 				},
-			showlegend: true,
-			legend: {"orientation": "h"}
-		};
+				font: {
+					size: 12
+				},
+				xaxis: {
+					type: 'log',
+					autorange: true
+				},
+				yaxis: {
+					type: 'normal',
+					autorange: true
+					},
+				showlegend: true,
+				legend: {"orientation": "h"}
+			};
 
-		var data = [
-			{
-				x: data.pdfs[0].periods,
-				y: data.pdfs[0].db,
-				mode: 'markers',
-				type: 'scatter',
-				name: data.pdfs[0].NSLC + " (" + data.pdfs[0].method + ")"
-			},
-			{
+			var plotable = [];
+
+			var ERR = $("#std").is(':checked');
+
+			data.pdfs.forEach(function (each) {
+				plotable.push({
+					x: each.periods,
+					y: each.dbs,
+					error_y: {
+						type: 'data',
+						array: each.stds,
+						visible: ERR
+					},
+					mode: 'markers',
+					type: 'scatter',
+					name: each.NSLC + " (" + each.first + ")"
+				});
+			});
+
+			plotable.push({
 				x: data.models.nlnm.per,
 				y: data.models.nlnm.db,
 				type: 'scatter',
 				name: 'Low Noise Model'
-			},
-			{
+			});
+
+			plotable.push({
 				x: data.models.nhnm.per,
 				y: data.models.nhnm.db,
 				type: 'scatter',
 				name: 'High Noise Model'
-			},
-		];
-		Plotly.plot(TESTER, data, layout);
-	});
-</script>
+			});
 
-</body>
+			Plotly.react(document.getElementById('plot'), plotable, layout);
+		}
 
+		function replot() {
+			var URL = BASEURL.replace("#NET#", $("input[id=net]").val());
+			var URL =     URL.replace("#STA#", $("input[id=sta]").val());
+			var URL =     URL.replace("#LOC#", $("input[id=loc]").val());
+			var URL =     URL.replace("#CHA#", $("input[id=cha]").val());
 
+			var URL =     URL.replace("#STARTTIME#", $("input[id=starttime]").val());
+			var URL =     URL.replace("#ENDTIME#",   $("input[id=endtime]").val());
+
+			var URL =     URL.replace("#NSEGMENTS#", $("input[id=nsegments]").val());
+			var URL =     URL.replace("#QUANTITY#",  $("select[id=quantity] option:selected").val());
+
+			var URL =     URL.replace("#STD#",  $("#std").is(':checked'));
+
+			$.getJSON(URL, plotPDF);
+
+			$("#URL a").text(URL);
+			$("#URL a").attr("href", URL)
+		}
+
+		$("input[type=button]").click(replot);
+
+		</script>
+
+	</body>
 </html>

@@ -48,25 +48,35 @@ def ptime(strtime):
     
     return t
 
-def get_nhnm():
+def get_nhnm(periods = None):
     """
     Returns periods and psd values for the New High Noise Model.
     For information on New High/Low Noise Model see [Peterson1993]_.
     """
-    data = np.load(NOISE_MODEL_FILE)
-    periods = data['model_periods']
-    nlnm = data['high_noise']
-    return (periods, nlnm)
+    pmin = 0.0
+    pmax = 100E3
+    if periods is not None:
+        pmin = min(periods)
+        pmax = max(periods)
+    d = np.load(NOISE_MODEL_FILE)
+    p = d['model_periods']
+    n = d['high_noise']
+    return (p[(p>=pmin)&(p<=pmax)], n[(p>=pmin)&(p<=pmax)])
 
-def get_nlnm():
+def get_nlnm(periods = None):
     """
     Returns periods and psd values for the New Low Noise Model.
     For information on New High/Low Noise Model see [Peterson1993]_.
     """
-    data = np.load(NOISE_MODEL_FILE)
-    periods = data['model_periods']
-    nlnm = data['low_noise']
-    return (periods, nlnm)
+    pmin = 0.0
+    pmax = 100E3
+    if periods is not None:
+        pmin = min(periods)
+        pmax = max(periods)
+    d = np.load(NOISE_MODEL_FILE)
+    p = d['model_periods']
+    n = d['low_noise']
+    return (p[(p>=pmin)&(p<=pmax)], n[(p>=pmin)&(p<=pmax)])
 
 #
 ## Classes
@@ -153,6 +163,13 @@ class PDF(object):
             maximun.append(a)
         return (np.array(maximun), self.__periods__) if periods else np.array(maximun)
     
+    def std(self, periods = False):
+        std =[]
+        for i in self.__periods__:
+            a = np.std(self.power[self.period == i])
+            std.append(a)
+        return (np.array(std), self.__periods__) if periods else np.array(std)
+    
     def fromrecords(self, data):
         '''
         Import data from a `records` query with fields:
@@ -173,21 +190,22 @@ class PDF(object):
         
         return
     
-    def DICT(self, method, periods = False):
+    def DICT(self, method, periods = False, std = False):
         m = getattr(self, method)
         if m is None: raise E("Bad requested method")
         db, per = m(True)
-        print(db, per)
-        db = list(map(float, db))
-        per = list(map(float, per))
         
+        db   = list(map(float, db))
+        per  = list(map(float, per))
+        stds = list(map(float, self.std(False))) if std is True else None
         me = {
             'NSLC' : "{}.{}.{}.{}".format(self.N, self.S, self.L, self.C),
             'first' : self.first,
             'last'  : self.last,
             'method'  : method,
-            'db': db,
-            'periods' : per if periods else None
+            'dbs': db,
+            'periods' : per if periods else None,
+            'stds' :  stds
         }
         
         return me

@@ -21,7 +21,6 @@
 						<option value="median"/>
 						<option value="min"/>
 						<option value="max"/>
-						<option value="std"/>
 					</param>
 					<!-- Filtering parameters (To be implemented) -->
 					<param name="minhour"  style="query" type="xsd:int"/>
@@ -29,6 +28,7 @@
 					<param name="dow"      style="query" type="xsd:string"/>
 					<!-- Others parameters -->
 					<param name="includemodels" style="query" type="xsd:boolean" default="false"/>
+					<param name="includestd" style="query" type="xsd:boolean" default="false"/>
 				</request>
 				<response status="200">
 					<representation mediaType="application/json"/>

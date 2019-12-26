@@ -81,6 +81,11 @@ class pq_query(Resource):
             self.db = db
     
     def __parseargs__(self, args):
+        def pquantity(v):
+            if v not in ['mean', 'median', 'mode', 'min', 'max']: raise ValueError("Invalid quantity value.")
+            return v
+        def pbool(v):
+            return (True if v in [ "true", "1", 1 ] else False)
         def ploc(v): return ("--" if str(v) == "" else str(v))
         def pdow(v):
             valid = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
@@ -92,15 +97,15 @@ class pq_query(Resource):
         
         validargs = [ 'net', 'sta', 'loc', 'cha', 'starttime',
                       'endtime', 'nsegments', 'quantity', 'minhour',
-                      'maxhour', 'dow', 'includemodels' ]
+                      'maxhour', 'dow', 'includemodels', 'includestd' ]
         
         parser    = dict(zip(validargs, [ str, str, ploc, str, pdate,
-                      pdate, int, str, ptime,
-                      ptime, pdow, bool]))
+                      pdate, int, pquantity, ptime,
+                      ptime, pdow, pbool, pbool]))
         
         defaults  = dict(zip(validargs, [ None, None, "--", None, None,
                       None, 1, 'mean', False,
-                      False, False, False ]))
+                      False, False, False, False]))
         
         needed    = { 'net', 'sta', 'cha', 'starttime', 'endtime' }
         
@@ -129,10 +134,11 @@ class pq_query(Resource):
         
         return collectedargs
     
-    def __models__(self, yes):
+    def __models__(self, yes, periods = None):
         if yes is False or None: return None
-        hper, hmodel = get_nhnm()
-        lper, lmodel = get_nlnm()
+        
+        hper, hmodel = get_nhnm(periods)
+        lper, lmodel = get_nlnm(periods)
         
         model = {
             'nhnm' : {
@@ -167,8 +173,8 @@ class pq_query(Resource):
                 return "".encode('utf-8')
             
             result = {
-                'pdfs'    : list(map(lambda x: x.DICT(args['quantity'], True), pdfs)),
-                'models'  : self.__models__(args['includemodels'])
+                'pdfs'    : list(map(lambda x: x.DICT(args['quantity'], True, args['includestd']), pdfs)),
+                'models'  : self.__models__(args['includemodels'], pdfs[0].period)
             }
         except E as e:
             request.setResponseCode(400)
@@ -199,10 +205,12 @@ class PQLXWebServer(Resource):
 ##
 
 if __name__ == "__main__":
+    print("Loading database ... ", file = sys.stderr)
     db = PQLXdb(user=sys.argv[1],
             password=sys.argv[2],
             machine=sys.argv[3],
             basedb=sys.argv[4])
+    print("Database is UP!", file = sys.stderr)
     
     root = PQLXWebServer(db)
     root.putChild(SITEBASE.encode('utf-8'), File("{}/".format(SITEBASE)))
@@ -211,3 +219,6 @@ if __name__ == "__main__":
     endpoint = endpoints.TCP4ServerEndpoint(reactor, 8080)
     endpoint.listen(factory)
     reactor.run()
+    
+    db.close()
+
