@@ -7,7 +7,7 @@ from optparse import OptionParser
 VERSION = '1.0'
 
 
-def plot_average(periods, average_noise, w3_average_noise, w6_average_noise, network, station, begin, end, show=False):
+def plot_average(periods, average_noise, w3_average_noise, w6_average_noise, network, station, channel, week, begin, end, show=False):
 
     t, h = pypqlx.get_nhnm()
     t, l = pypqlx.get_nlnm()
@@ -19,10 +19,10 @@ def plot_average(periods, average_noise, w3_average_noise, w6_average_noise, net
     ax.semilogx(periods, average_noise, color='#E91E63', label='Average Noise')
 
     if (len(w3_data) > 0):
-        ax.semilogx(periods, w3_average_noise, color='#2196F3', label='Last 3 weeks')
+        ax.semilogx(periods, w3_average_noise, color='#2196F3', label='Last '+ str(week) +' weeks')
 
     if (len(w6_data) > 0):
-        ax.semilogx(periods, w6_average_noise, color='#00C853', label='Last 6 weeks')
+        ax.semilogx(periods, w6_average_noise, color='#00C853', label='Last '+ str(week) +' weeks')
 
     ax.legend()
     ax.set_xlabel('Period [s]')
@@ -31,8 +31,8 @@ def plot_average(periods, average_noise, w3_average_noise, w6_average_noise, net
     ax.grid()
     plt.xlim(0.1, 179)
 
-    plt.title('%s %s Average Noise from %s to %s' % (network, station, begin, end))
-    imgfile = ".".join((network, station, 'png'))
+    plt.title('%s.%s.%s Average Noise from \n %s to %s' % (network, station,channel, begin, end))
+    imgfile = ".".join((network, station, channel, 'png'))
     plt.savefig(imgfile, dpi=200)
     print(imgfile,'generated.')
     if show:
@@ -70,6 +70,9 @@ def make_cmdline_parser():
 
     parser.add_option("-v", "--view", action="store_true", dest="view",
                       help="Optional. If you want to view generated plots", default=False)
+                      
+    parser.add_option("-w", "--weekdelta", type="int", dest="weekdt",
+                      help="Optional. Choose the week from actual to plot.", default=None)                      
 
     return parser
 
@@ -106,6 +109,7 @@ if __name__ == "__main__":
     nslc     = options.nslc
     stalist  = options.stalist
     view     = options.view
+    weekdt   = options.weekdt
     streams  = []
 
     if (nslc == None and stalist == None):
@@ -120,6 +124,9 @@ if __name__ == "__main__":
     else:
         stream = " ".join((nslc.split('_')))
         streams.append(stream)
+        
+    if weekdt == None:
+        weekdt = 3
 
     #
     ## Making plots:
@@ -150,7 +157,8 @@ if __name__ == "__main__":
             #
             ## get noise data from past 3 weeks
             #
-            delta   = datetime.timedelta(weeks=3)
+            #delta   = datetime.timedelta(weeks=3)
+            delta   = datetime.timedelta(weeks=weekdt)
             w3_pdf  = db.PDF(start - delta, end - delta, net, sta, cha, loc)
             w3_data = w3_pdf.average()
 
@@ -160,7 +168,8 @@ if __name__ == "__main__":
             #
             ## get noise data from past 6 weeks
             #
-            t = datetime.timedelta(weeks=6)
+            #t = datetime.timedelta(weeks=6)
+            t = datetime.timedelta(weeks=weekdt*2)
             w6_pdf = db.PDF(start - t, end - t, net, sta, cha, loc)
             w6_data = w6_pdf.average()
 
@@ -176,8 +185,10 @@ if __name__ == "__main__":
                          w6_average_noise=w6_data,
                          network=net,
                          station=sta,
+                         channel=cha, 
                          begin=start.date(),
                          end=end.date(),
+                         week=weekdt, 
                          show=view)
 
     db.close()
