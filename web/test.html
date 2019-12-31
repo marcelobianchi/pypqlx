@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 	<head>
+		<meta charset="UTF-8">
 		<link rel="stylesheet" href="base.css">
 		<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 		<script
@@ -16,16 +17,17 @@
 
 	<body>
 		<div style="margin: auto; width: 1024px; padding: 0;">
-			<div style="float:left; width: 180px; border: 1px Solid white; padding: 5px; height: 520px; margin: 5px;">
+			<h1>PQLX Database</h1>
+			<div style="float:left; width: 180px; border: 1px Solid white; padding: 5px; height: 550px; margin: 5px;">
 				FDSN Codes:<br/>
-				<input id="net" value="BL" placeholder="Network code" maxlength=2/><br/>
-				<input id="sta" value="AQDB" placeholder="Station code" maxlength=5/><br/>
-				<input id="loc" value="--" placeholder="Location code (-- for empty)" maxlength=2/><br/>
-				<input id="cha" value="HHZ" placeholder="Channel code" maxlength=3/><br/>
+
+				<select id="net"></select><br/>
+				<select id="sta"></select><br/>
+				<select id="cha"></select><br/>
 
 				<br/>Time Intervals:<br/>
-				<input id="starttime" type="text" value="2019-01-01" placeholder="Time start (ISO)"/><br/>
-				<input id="endtime"   type="text" value="2019-02-01" placeholder="Time end (ISO)"/><br/>
+				<input id="starttime" type="text" value="" placeholder="Time start (ISO)"/><br/>
+				<input id="endtime"   type="text" value="" placeholder="Time end (ISO)"/><br/>
 
 				<br/>Number of Segments [<span id="nseg" style="text-decoration: underline; font-style: italic;">3</span>]:<br/>
 				<input id="nsegments" type="range" min="1" max="25" value="3" /><br/>
@@ -42,7 +44,7 @@
 				<label><input type="checkbox" id="std" style="width: 18px; height: 18px; margin: 5px;vertical-align: middle;"/>Show Stdev.</label><br/>
 
 				<br/>
-				<input type="button" value="Fetch &amp; Plot"/>
+				<input type="button" id="refresh" value="Fetch &amp; Plot"/>
 				
 				<p style="text-align: center;">
 					<span id="fail" style="color: red;"></span>
@@ -51,7 +53,13 @@
 				<br style="clear: both;"/>
 			</div>
 
-			<div id="plot" style="float: left; width:800px; height: 520px; padding: 5px; margin: 5px; border: 1px Solid white;"></div>
+			<div id="plot" style="float: left; width:800px; height: 550px; padding: 5px; margin: 5px; border: 1px Solid white;"></div>
+
+			<div style="text-align: center;">
+				<input type="button" id="lyear" value="Last Year"/>
+				<input type="button" id="lweek" value="Last Weeks"/>
+				<input type="button" id="3weeks" value="Last 3 Weeks"/>
+			</div>
 
 			<div id="URL" style="background: #ffffff77; clear: both; width: 992px; border: 1px Solid white; padding: 5px 10px 5px 10px; margin: 5px;"><i>Data Feed:</i> <a href=""></a></div>
 		</div>
@@ -86,11 +94,6 @@
 				y : -0.2
 			}
 		};
-		
-		function changed(item) {
-			$(item.target).css('color', 'red');
-			$("input[type=button]").css('color', 'red');
-		}
 
 		function plotPDF(data) {
 
@@ -138,18 +141,20 @@
 			$("#fail").text("");
 			$("#done").text("Fetching data ... ");
 
-			$("#net").css('color', 'black');
-			$("#sta").css('color', 'black');
-			$("#loc").css('color', 'black');
-			$("#cha").css('color', 'black');
-			$("#starttime").css('color', 'black');
-			$("#endtime").css('color', 'black');
-			$("input[type=button]").css('color', 'black');
 
-			var URL = BASEURL.replace("#NET#", $("input[id=net]").val());
-			var URL =     URL.replace("#STA#", $("input[id=sta]").val());
-			var URL =     URL.replace("#LOC#", $("input[id=loc]").val());
-			var URL =     URL.replace("#CHA#", $("input[id=cha]").val());
+			var N = $("#net option:selected").val();
+			var S = $("#sta option:selected").val();
+			var L = $("#cha option:selected").val().split(".")[0];
+			var C = $("#cha option:selected").val().split(".")[1];
+
+			if (N == "") return;
+			if (S == "") return;
+			if (C == "") return;
+
+			var URL = BASEURL.replace("#NET#", N);
+			var URL =     URL.replace("#STA#", S);
+			var URL =     URL.replace("#LOC#", L);
+			var URL =     URL.replace("#CHA#", C);
 
 			var URL =     URL.replace("#STARTTIME#", $("input[id=starttime]").val());
 			var URL =     URL.replace("#ENDTIME#",   $("input[id=endtime]").val());
@@ -172,24 +177,103 @@
 				$("body").css("cursor", "default");
 			});
 		}
-		
-		$("input[type=button]").click(replot);
-		$("input[type=checkbox]").change(replot);
-		$("select").change(replot);
-		$("input[id=nsegments]").change(function () {
-			$("#nseg").text($("input[id=nsegments]").val());
-			replot();
-		});
-		
-		$("#net").change(changed);
-		$("#sta").change(changed);
-		$("#loc").change(changed);
-		$("#cha").change(changed);
-		$("#starttime").change(changed);
-		$("#endtime").change(changed);
-		
-		replot();
-		</script>
 
+		function loadMDA() {
+			var URL = 'http://seisrequest.iag.usp.br/fdsnws/station/1/query?format=text&net=BL,BR,ON,NB&level=cha&endafter=2019-01-01';
+			var mda = {};
+			
+			function parseStations(data) {
+				mda = {};
+				data.split("\n").forEach(function (line, k) {
+					if (k == 0) return;
+					keys = line.split("|");
+					N = keys[0];
+					S = keys[1];
+					L = keys[2];
+					C = keys[3];
+					if ( N == "" ) return;
+					
+					if (L == "") L = "--";
+					C = L + "." + C;
+					
+					net = mda[N];
+					if (net === undefined) { net = {}; mda[N] = net;}
+					
+					sta = net[S];
+					if (sta === undefined) { sta = {}; net[S] = sta;}
+					
+					cha = sta[C];
+					if (cha === undefined) { cha = C; sta[C] = cha;}
+				});
+				
+				function makeoptions(items, sel, what) {
+					sel.empty();
+					sel.append('<option value=""> Select a ' + what+ '</option>');
+					for(item in items) {
+						sel.append('<option value="' + item + '">' + item + '</option>');
+					}
+				}
+				
+				makeoptions(mda, $("#net"), "Network");
+				
+				$("#net").change(function () {
+					var N = $("#net option:selected").val();
+					if (mda[N] === undefined) return;
+					makeoptions(mda[N], $("#sta"), "Station");
+					$("#cha").empty();
+				});
+				
+				$("#sta").change(function () {
+					var N = $("#net option:selected").val();
+					var S = $("#sta option:selected").val();
+					if (mda[N][S] === undefined) return;
+					makeoptions(mda[N][S], $("#cha"), "Channel");
+				});
+				
+				$("#cha").change(function () {
+				});
+			}
+			
+			$.get(URL, parseStations);
+		}
+
+		function ff(v) {
+			return v.getFullYear() + "-" + (v.getMonth()+1) + "-" + v.getDate();
+		}
+
+		$("#refresh").click(replot);
+
+		$("#lyear").click(function () {
+			var ta = new Date();
+
+			$("#endtime").val(ff(ta)).change();
+			ta.setDate(ta.getDate() - 365);
+			$("#starttime").val(ff(ta)).change();
+		});
+
+		$("#lweek").click(function () {
+			var ta = new Date();
+
+			$("#endtime").val(ff(ta)).change();
+			ta.setDate(ta.getDate() - 7);
+			$("#starttime").val(ff(ta)).change();
+		});
+
+		$("#3weeks").click(function () {
+			var ta = new Date();
+
+			$("#endtime").val(ff(ta)).change();
+			ta.setDate(ta.getDate() - 21);
+			$("#starttime").val(ff(ta)).change();
+		});
+
+		$("#3weeks").click();
+
+		$("#nsegments").change(function () {
+			$("#nseg").text($("input[id=nsegments]").val());
+		});
+
+		loadMDA();
+		</script>
 	</body>
 </html>
