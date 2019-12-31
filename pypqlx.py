@@ -128,8 +128,8 @@ class PDF(object):
     def mode(self, periods = False):
         mode = []
         for i in self.__periods__:
-            a = self.power[max(self.count[self.period == i])]
-            mode.append(a)
+            v = self.power[self.period == i][(self.count[self.period == i]).argmax()]
+            mode.append(v)
         return (np.array(mode), self.__periods__) if periods else np.array(mode)
     
     def median(self, periods = False):
@@ -149,10 +149,13 @@ class PDF(object):
             average.append(a)
         return (np.array(average), self.__periods__) if periods else np.array(average)
     
-    def min(self, periods = False):
+    def min(self, periods = False, dirty = False):
         minimun = []
         for i in self.__periods__:
-            a = min(self.power[self.period == i])
+            if dirty:
+                a = min(self.power[self.period == i])
+            else:
+                a = min(self.power[(self.period == i)&(self.power>-200)])
             minimun.append(a)
         return (np.array(minimun), self.__periods__) if periods else np.array(minimun)
     

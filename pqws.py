@@ -67,7 +67,7 @@ class pq_help(Resource):
         lis = [
             li(a('query', '/query') + ': The Query method is the one that you should use to get data.'),
             li(a('application.wadl', '/application.wadl') + ': The Query method is the one that you should use to get data.'),
-            li(a('web teste', '/web/test.html') + ': This is a web test/demonstration page for the system.'),
+            li(a('Test Web Page', '/web/test.html') + ': This is a web test page for the system.'),
         ]
         msg += title('Available Resources are:', 2)
         msg += ol(lis)
@@ -85,15 +85,14 @@ class pq_query(Resource):
         def pquantity(v):
             if v not in ['mean', 'median', 'mode', 'min', 'max']: raise ValueError("Invalid quantity value.")
             return v
-        def pbool(v):
-            return (True if v in [ "true", "1", 1 ] else False)
-        def ploc(v): return ("--" if str(v) == "" else str(v))
+        def pbool(v): return True if v in [ "true", "1", 1 ] else False
+        def ploc(v) : return ("--" if str(v) == "" else str(v))
         def pdow(v):
             valid = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
             v = v.split(",")
-            if len(v) == 0: raise ValueError("Days of week cannot be empty.")
+            if len(v) == 0: raise ValueError("Week days cannot be empty.")
             for iv in v:
-                if iv not in valid: raise ValueError("Value is invalid")
+                if iv not in valid: raise ValueError("Value: {} is invalid".format(iv))
             return v
         
         validargs = [ 'net', 'sta', 'loc', 'cha', 'starttime',
