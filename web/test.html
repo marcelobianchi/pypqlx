@@ -39,6 +39,7 @@
 					<option value="median">Median</option>
 					<option value="min">Min</option>
 					<option value="max">Max</option>
+					<option value="mean,min,max">Mean (w/ min-max)</option>
 				</select><br/>
 
 				<label><input type="checkbox" id="std" style="width: 18px; height: 18px; margin: 5px;vertical-align: middle;"/>Show Stdev.</label><br/>
@@ -103,18 +104,41 @@
 
 			var ERR = $("#std").is(':checked');
 
-			data.pdfs.forEach(function (each) {
-				plotable.push({
-					x: each.periods,
-					y: each.dbs,
-					error_y: {
-						type: 'data',
-						array: each.stds,
-						visible: ERR
-					},
-					mode: 'markers',
-					type: 'scatter',
-					name: each.NSLC + " (" + each.first + ")"
+			data.pdfs.forEach(function (each, i) {
+				each.quantities.forEach(function (q) {
+					if ((q == "min" || q == "max") && (each.quantities.length > 1)) {
+						if (i == (data.pdfs.length - 1) ) {
+							console.log(i, data.pdfs.length);
+							plotable.push({
+								x: each.periods,
+								y: each[q],
+								error_y: {
+									type: 'data',
+									array: each.stds,
+									visible: ERR
+								},
+								mode:  "line",
+								type: 'scatter',
+								line: {
+									color: 'rgb(100, 100, 100)'
+								},
+								name: q
+							});
+						}
+					} else {
+						plotable.push({
+							x: each.periods,
+							y: each[q],
+							error_y: {
+								type: 'data',
+								array: each.stds,
+								visible: ERR
+							},
+							mode: "markers",
+							type: 'scatter',
+							name: each.NSLC + " (" + each.first + ")"
+						});
+					}
 				});
 			});
 
@@ -123,6 +147,10 @@
 				y: data.models.nlnm.db,
 				type: 'scatter',
 				name: 'Low Noise Model',
+				line: {
+					dash: 'dot',
+					color: 'rgb(100, 100, 100)'
+				},
 				showlegend: false
 			});
 
@@ -131,7 +159,11 @@
 				y: data.models.nhnm.db,
 				type: 'scatter',
 				name: 'High Noise Model',
-				showlegend: false
+				line: {
+					dash: 'dot',
+					color: 'rgb(100, 100, 100)'
+				},
+				showlegend: false,
 			});
 
 			Plotly.react(document.getElementById('plot'), plotable, layout);
@@ -238,7 +270,7 @@
 		}
 
 		function ff(v) {
-			return v.getFullYear() + "-" + (v.getMonth()+1) + "-" + v.getDate();
+			return v.getFullYear().toString().padStart(4, "0") + "-" + (v.getMonth()+1).toString().padStart(2, "0") + "-" + v.getDate().toString().padStart(2, "0");
 		}
 
 		$("#refresh").click(replot);

@@ -83,8 +83,12 @@ class pq_query(Resource):
     
     def __parseargs__(self, args):
         def pquantity(v):
-            if v not in ['mean', 'median', 'mode', 'min', 'max']: raise ValueError("Invalid quantity value.")
-            return v
+            v = v.split(",")
+            qq = []
+            for q in v:
+                if q not in ['mean', 'median', 'mode', 'min', 'max']: raise ValueError("Invalid quantity value.")
+                qq.append(q)
+            return set(qq)
         def pbool(v): return True if v in [ "true", "1", 1 ] else False
         def ploc(v) : return ("--" if str(v) == "" else str(v))
         def pdow(v):
@@ -104,7 +108,7 @@ class pq_query(Resource):
                       ptime, pdow, pbool, pbool]))
         
         defaults  = dict(zip(validargs, [ None, None, "--", None, None,
-                      None, 1, 'mean', False,
+                      None, 1, [ 'mean' ], False,
                       False, False, False, False]))
         
         needed    = { 'net', 'sta', 'cha', 'starttime', 'endtime' }

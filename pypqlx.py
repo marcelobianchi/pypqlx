@@ -193,27 +193,31 @@ class PDF(object):
         
         return
     
-    def DICT(self, method, periods = False, std = False):
+    def DICT(self, quantities, periods = False, std = False):
         '''
         Returns a dictionary representation of the PDF class in a
         appropriate form to generate a JSON object
         '''
-        m = getattr(self, method)
-        if m is None: raise E("Bad requested method")
-        dbs, pers = m(True)
         
-        dbs   = list(map(float, dbs))
-        pers  = list(map(float, pers))
+        if isinstance(quantities, str): quantities = [ quantities ]
+        
+        pers  = list(map(float, self.__periods__))
         stds = list(map(float, self.std(False))) if std is True else None
+        
         as_dict = {
             'NSLC'    : "{}.{}.{}.{}".format(self.N, self.S, self.L, self.C),
             'first'   : self.first,
             'last'    : self.last,
-            'method'  : method,
-            'dbs'     : dbs,
+            'quantities'  : list(quantities),
             'periods' : pers if periods else None,
             'stds'    : stds
         }
+        
+        for q in quantities:
+            m = getattr(self, q)
+            if m is None: raise E("Bad requested method = '{}'".format(q))
+            data  = list(map(float, m(False)))
+            as_dict[q] = data
         
         return as_dict
     
@@ -308,7 +312,10 @@ class PQLXdb(object):
 
         step = (e - s) / NS
         for i in range(NS):
-            pdfs.append(self.PDF(s + i * step, s + (i+1)*step, N, S, C, L, filters))
+            try:
+                pdfs.append(self.PDF(s + i * step, s + (i+1)*step, N, S, C, L, filters))
+            except E:
+                pass
             
         return pdfs
     
@@ -352,7 +359,8 @@ class PQLXdb(object):
         except:
             r = r.first()
 
-        
+        if nct == 0:
+            raise E("No Data in period")
         pdf = PDF(r.first, r.last, nct, N, S, C, L)
         
         #
