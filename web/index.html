@@ -178,7 +178,7 @@
 
 			var N = $("#network option:selected").val();
 			var S = $("#station option:selected").val();
-			
+			if ((S == "NONE") || (S === undefined)) return;
 			var L = "";
 			var C = "HHZ";
 
@@ -298,16 +298,16 @@
 
 		$("#prev").click(function() {
 			var that = $("#station option:selected");
+			console.log("Current = " + that.val() + " Prev: " + that.prev().val());
 			if (that.prev().val() == "NONE") return;
-			$("#station option[value=" + that.val() + "]").attr("selected", false);
-			$("#station option[value=" + that.prev().val() + "]").attr("selected",true).change();
+			$("#station").val(that.prev().val()).change();
 		});
 
 		$("#next").click(function() {
 			var that = $("#station option:selected");
+			console.log("Current = " + that.val() + " Next: " + that.next().val());
 			if (that.next().val() == undefined) return;
-			$("#station option[value=" + that.val() + "]").attr("selected", false);
-			$("#station option[value=" + that.next().val() + "]").attr("selected",true).change();
+			$("#station").val(that.next().val()).change();
 		});
 
 		$("#bz").click(function (){
