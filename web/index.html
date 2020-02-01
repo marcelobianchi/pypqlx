@@ -79,7 +79,8 @@
 		};
 
 		function plotPDF(data, where) {
-
+			if (data === undefined) return;
+			
 			layout.title.text = data.pdfs[0].NSLC;
 
 			var plotable = [];
@@ -272,10 +273,12 @@
 					if (cha === undefined) { cha = C; sta[C] = cha;}
 				});
 				
+				function sortObject(obj) {return Object.keys(obj).sort().reduce(function(result, key) { result[key] = obj[key]; return result; }, {});}
+				
 				function makeoptions(items, sel, what) {
 					sel.empty();
 					sel.append('<option value="NONE"> Select a ' + what + '</option>');
-					for(item in items) {
+					for(item in sortObject(items)) {
 						sel.append('<option value="' + item + '">' + item + '</option>');
 					}
 				}
