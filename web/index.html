@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<link rel="stylesheet" href="base.css">
+		<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+		<script
+			src="https://code.jquery.com/jquery-2.2.4.min.js"
+			integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44="
+			crossorigin="anonymous">
+		</script>
+		<style>
+		body  { background: #555555;}
+		h1 { text-align: center; color: #dddddd;}
+		#network { width: 55px; }
+		#station { width: 240px; }
+		#prev { width: 75px; float: left;}
+		#next { width: 75px; float: right;}
+		</style>
+	</head>
+
+	<body>
+		<div style="margin: auto; width: 1296px; padding: 0;">
+			<h1>PQLX Database Inspector</h1>
+
+			<div style="text-align: center; width: 850px; padding: 5px; margin: 10px auto 10px auto; border: 1px Solid white;">
+				<input type="button" id="bz" value="Z"/>
+				<input type="button" id="bn" value="N"/>
+				<input type="button" id="be" value="E"/>
+			</div>
+
+			<div id="plotZ" style="width:850px; height: 500px; padding: 5px; margin: auto; border: 1px Solid white; display: none;"></div>
+			<div id="plotN" style="width:850px; height: 500px; padding: 5px; margin: auto; border: 1px Solid white; display: none;"></div>
+			<div id="plotE" style="width:850px; height: 500px; padding: 5px; margin: auto; border: 1px Solid white; display: none;"></div>
+
+			<div style="text-align: center; width: 850px; padding: 5px; margin: 10px auto 10px auto; border: 1px Solid white;">
+				<input type="button" id="prev" value="&lt;&lt;"/>
+				<input type="button" id="next" value="&gt;&gt;"/>
+				<div style="margin: auto; width: 450px; text-align: center;">
+					<select id="network">
+						<option value="BL" selected="selected">BL</option>
+						<option value="BR">BR</option>
+					</select>
+					<select id="station"></select>
+				</div>
+			</div>
+		</div>
+		<script>
+		var BASEURL = "/query?net=#NET#&quantity=#QUANTITY#&sta=#STA#&loc=#LOC#&cha=#CHA#&starttime=#STARTTIME#&endtime=#ENDTIME#&nsegments=#NSEGMENTS#&includemodels=true&includestd=#STD#";
+		var CURRENT = "Z";
+		
+		var layout = {
+			title: {
+				text: undefined
+			},
+			font: {
+				size: 12
+			},
+			xaxis: {
+				title: {
+					text: 'Periods (s)'
+				},
+				type: 'log',
+				autorange: true
+			},
+			yaxis: {
+				type: 'normal',
+				title: {
+					text: 'dB'
+				},
+				autorange: true
+				},
+			showlegend: true,
+			legend: {
+				orientation: "h",
+				x : 0,
+				y : -0.2
+			}
+		};
+
+		function plotPDF(data, where) {
+
+			layout.title.text = data.pdfs[0].NSLC;
+
+			var plotable = [];
+
+			var ERR = $("#std").is(':checked');
+
+			data.pdfs.forEach(function (each, i) {
+				each.quantities.forEach(function (q) {
+					if ((q == "min" || q == "max") && (each.quantities.length > 1)) {
+						if (i == (data.pdfs.length - 1) ) {
+							console.log(i, data.pdfs.length);
+							plotable.push({
+								x: each.periods,
+								y: each[q],
+								error_y: {
+									type: 'data',
+									array: each.stds,
+									visible: ERR
+								},
+								mode:  "line",
+								type: 'scatter',
+								line: {
+									color: 'rgb(100, 100, 100)'
+								},
+								name: q
+							});
+						}
+					} else {
+						plotable.push({
+							x: each.periods,
+							y: each[q],
+							error_y: {
+								type: 'data',
+								array: each.stds,
+								visible: ERR
+							},
+							mode: "markers",
+							type: 'scatter',
+							name: each.first.substring(0,10) + "/" + each.last.substring(0,10)
+						});
+					}
+				});
+			});
+
+			plotable.push({
+				x: data.models.periods,
+				y: data.models.nlnm,
+				type: 'scatter',
+				name: 'Low Noise Model',
+				line: {
+					dash: 'dot',
+					color: 'rgb(100, 100, 100)'
+				},
+				showlegend: false
+			});
+
+			plotable.push({
+				x: data.models.periods,
+				y: data.models.nhnm,
+				type: 'scatter',
+				name: 'High Noise Model',
+				line: {
+					dash: 'dot',
+					color: 'rgb(100, 100, 100)'
+				},
+				showlegend: false,
+			});
+
+			Plotly.react(document.getElementById(where), plotable, layout);
+		}
+
+		function plotZ(data) {
+			plotPDF(data, 'plotZ');
+			if (CURRENT != "Z") $("#plotZ").hide();
+		}
+
+		function plotN(data) {
+			plotPDF(data, 'plotN');
+			if (CURRENT != "N") $("#plotN").hide();
+		}
+
+		function plotE(data) {
+			plotPDF(data, 'plotE');
+			if (CURRENT != "E") $("#plotE").hide();
+		}
+
+		function replot() {
+			$("#fail").text("");
+			$("#done").text("Fetching data ... ");
+
+			var ta = new Date();
+			var tb = new Date();
+			ta.setDate(ta.getDate() - 30);
+
+			var ns = 3;
+
+			var N = $("#network option:selected").val();
+			var S = $("#station option:selected").val();
+			
+			var L = "";
+			var C = "HHZ";
+
+			if (N == "") return;
+			if (S == "") return;
+			if (C == "") return;
+
+			function newURL() {
+				var URL = BASEURL.replace("#NET#", N);
+				var URL =     URL.replace("#STA#", S);
+				var URL =     URL.replace("#LOC#", L);
+				var URL =     URL.replace("#CHA#", C);
+
+				var URL =     URL.replace("#STARTTIME#", ff(ta));
+				var URL =     URL.replace("#ENDTIME#",   ff(tb));
+
+				var URL =     URL.replace("#NSEGMENTS#", ns);
+				var URL =     URL.replace("#QUANTITY#",  'median');
+
+				var URL =     URL.replace("#STD#",  'false');
+				return URL;
+			}
+	
+			var URLZ = newURL();
+
+			C = "HHN";
+			var URLN = newURL();
+
+			C = "HHE";
+			var URLE = newURL();
+
+			$("body").css("cursor", "progress");
+
+			layout.title.text = "Loading ... " + $("#station option:selected").val();
+			Plotly.react(document.getElementById('plotZ'), null, layout);
+			Plotly.react(document.getElementById('plotN'), null, layout);
+			Plotly.react(document.getElementById('plotE'), null, layout);
+
+			$("#plotZ").show();
+			$("#plotN").show();
+			$("#plotE").show();
+
+			$.getJSON(URLZ, plotZ).fail(function() {
+				$("#fail").text("Failed to get DATA!");
+			}).always(function() {
+				$("#done").text("");
+				$("body").css("cursor", "default");
+			});
+
+			$.getJSON(URLN, plotN).fail(function() {
+				$("#fail").text("Failed to get DATA!");
+			}).always(function() {
+				$("#done").text("");
+				$("body").css("cursor", "default");
+			});
+
+			$.getJSON(URLE, plotE).fail(function() {
+				$("#fail").text("Failed to get DATA!");
+			}).always(function() {
+				$("#done").text("");
+				$("body").css("cursor", "default");
+			});
+		}
+
+		function loadMDA() {
+			var NET = $("#network option:selected").val();
+			var URL = 'http://seisrequest.iag.usp.br/fdsnws/station/1/query?format=text&net=' + NET + '&level=cha&endafter=2020-01-01';
+			var mda = {};
+			
+			function parseStations(data) {
+				mda = {};
+				data.split("\n").forEach(function (line, k) {
+					if (k == 0) return;
+					keys = line.split("|");
+					N = keys[0];
+					S = keys[1];
+					L = keys[2];
+					C = keys[3];
+					if ( N == "" ) return;
+					
+					if (L == "") L = "--";
+					C = L + "." + C;
+					
+					net = mda[N];
+					if (net === undefined) { net = {}; mda[N] = net;}
+					
+					sta = net[S];
+					if (sta === undefined) { sta = {}; net[S] = sta;}
+					
+					cha = sta[C];
+					if (cha === undefined) { cha = C; sta[C] = cha;}
+				});
+				
+				function makeoptions(items, sel, what) {
+					sel.empty();
+					sel.append('<option value="NONE"> Select a ' + what + '</option>');
+					for(item in items) {
+						sel.append('<option value="' + item + '">' + item + '</option>');
+					}
+				}
+				
+				makeoptions(mda[NET], $("#station"), "Station");
+			}
+			
+			$.get(URL, parseStations);
+		}
+
+		function ff(v) {
+			return v.getFullYear().toString().padStart(4, "0") + "-" + (v.getMonth()+1).toString().padStart(2, "0") + "-" + v.getDate().toString().padStart(2, "0");
+		}
+
+		$("#refresh").click(replot);
+
+		$("#network").change(loadMDA);
+
+		$("#station").change(replot);
+
+		$("#prev").click(function() {
+			var that = $("#station option:selected");
+			if (that.prev().val() == "NONE") return;
+			$("#station option[value=" + that.val() + "]").attr("selected", false);
+			$("#station option[value=" + that.prev().val() + "]").attr("selected",true).change();
+		});
+
+		$("#next").click(function() {
+			var that = $("#station option:selected");
+			if (that.next().val() == undefined) return;
+			$("#station option[value=" + that.val() + "]").attr("selected", false);
+			$("#station option[value=" + that.next().val() + "]").attr("selected",true).change();
+		});
+
+		$("#bz").click(function (){
+			$("#plotZ").show();
+			$("#plotN").hide();
+			$("#plotE").hide();
+			CURRENT = "Z";
+		});
+
+		$("#bn").click(function (){
+			$("#plotZ").hide();
+			$("#plotN").show();
+			$("#plotE").hide();
+			CURRENT = "N";
+		});
+
+		$("#be").click(function (){
+			$("#plotZ").hide();
+			$("#plotN").hide();
+			$("#plotE").show();
+			CURRENT = "E";
+		});
+
+		$("body").keypress(function(key){
+			if ((key.key == "n") || (key.key == "N")) $("#next").click();
+			else if ((key.key == "p") || (key.key == "P")) $("#prev").click();
+			else if (key.key == "1") $("#bz").click();
+			else if (key.key == "2") $("#bn").click();
+			else if (key.key == "3") $("#be").click();
+		});
+
+		loadMDA();
+
+		</script>
+	</body>
+</html>
