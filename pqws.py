@@ -10,6 +10,7 @@ from twisted.internet import reactor, endpoints
 from twisted.web.static import File
 
 from pypqlx import pdate, ptime, PQLXdb, get_nhnm, get_nlnm, E
+import numpy as np 
 
 ##
 # HTML helper methods
@@ -144,16 +145,15 @@ class pq_query(Resource):
         hper, hmodel = get_nhnm(periods)
         lper, lmodel = get_nlnm(periods)
         
+        if not np.all(lper == hper):
+            lmodel = np.inter(hper, lper, lmodel)
+        
         model = {
-            'nhnm' : {
-                'per' : list(hper),
-                'db'  : list(hmodel)
-            },
-            'nlnm' : {
-                'per' : list(lper),
-                'db'  : list(lmodel)
-            }
+            'periods' : list(hper),
+            'nhnm'    : list(hmodel),
+            'nlnm'    : list(lmodel),
         }
+        
         return model
     
     def render_GET(self, request):
