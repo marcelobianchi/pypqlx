@@ -184,7 +184,7 @@ class pq_query(Resource):
             request.setResponseCode(400)
             return str(e).encode('utf-8')
                 
-        return json.dumps(result, indent = 2).encode('utf-8')
+        return json.dumps(result, indent = 2, default=str).encode('utf-8')
 
 class PQLXWebServer(Resource):
     def __init__(self, db):
